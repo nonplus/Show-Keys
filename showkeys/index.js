@@ -29,6 +29,8 @@ const prettyMap = {
 };
 
 let keys = [];
+let keyCounts = {};
+let activeModifiers = '';
 let appearedAt = null;
 
 const handler = (event) => {
@@ -55,7 +57,15 @@ const handler = (event) => {
     .filter((modifier) => modifiers[modifier])
     .forEach((modifier) => newKeys.push(prettyMap[modifier]));
 
+  const newActiveModifiers = newKeys.join();
+
   if (!Object.keys(modifiers).includes(event.key)) newKeys.push(key);
+
+  if (keyCounts[key] && newActiveModifiers === activeModifiers) {
+    keyCounts[key] += 1;
+  } else {
+    keyCounts = { [key]: 1};
+  }
 
   const dismissAfterTimeout = () => {
     // TODO: Should probably clear this timeout
@@ -64,12 +74,15 @@ const handler = (event) => {
       else if (new Date() - appearedAt < 1000) dismissAfterTimeout();
       else {
         keys = [];
+        keyCounts = {};
+        activeModifiers = '';
         if (toggle_state == 1) render();
       }
     }, 1000);
   };
 
   keys = newKeys;
+  activeModifiers = newActiveModifiers;
   appearedAt = new Date();
   if (toggle_state == 1) render();
   dismissAfterTimeout();
@@ -101,10 +114,16 @@ const css = `
     display: flex;
     justify-content: center;
     align-items: center;
+    flex-direction: column;
     color: #2e2e2e;
     background: #ffffff;
     background: radial-gradient(circle, rgba(255,255,255,1) 0%, rgba(255,245,205,1) 10%, rgba(255,208,173,1) 100%);
     border-radius: 4px;
+  }
+  [data-keys] [data-key] [data-key-count] {
+    font-size: 16px;
+    font-weight: bold;
+    opacity: 0.75;
   }
   @media (prefers-color-scheme: dark) {
     [data-keys] {
@@ -161,6 +180,13 @@ const render = () => {
       const keyEl = document.createElement("div");
       keyEl.setAttribute("data-key", "");
       keyEl.textContent = key;
+      const count = keyCounts[key];
+      if (count > 1) {
+        const countEl = document.createElement("div");
+        countEl.setAttribute("data-key-count", "");
+        countEl.textContent = '×' + count;
+        keyEl.appendChild(countEl);
+      }
       container.appendChild(keyEl);
     });
   }
